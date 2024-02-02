@@ -9,6 +9,7 @@
 // SYS includes
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <typeinfo>
 
 // ROOT INCLUDES
 #include "TFile.h"
@@ -70,6 +71,7 @@ class DatAnalyzer {
         virtual void Analyze();
 
         float GetPulseIntegral(float *a, float *t, unsigned int i_st, unsigned int i_stop); //returns charge in pC asssuming 50 Ohm termination
+        int GetMinIndex(float* array);
         unsigned int GetIdxClosest(float value, float* v, unsigned int i_st, int direction=+1);
         unsigned int GetIdxFirstCross(float value, float* v, unsigned int i_st, int direction=+1);
         void AnalyticalPolinomialSolver(unsigned int Np, float* in_x, float* in_y, unsigned int deg, float* &out_coeff, float* err = 0);
