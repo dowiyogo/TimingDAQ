@@ -286,13 +286,13 @@ void DatAnalyzer::Analyze(){
         // cout<<"==========================================="<<endl;
         // cout<<config->channels[i].algorithm<<endl;
         for ( auto f : config->constant_fraction ) {
-          var[Form("linear_RE_%d", (int)(100*f))][i] = (f*amp-Re_b)/Re_slope;
+          var[Form("linear_RE_%d", (int)(100*f))][i] = (f*amp-Re_b)/Re_slope + myTimeOffset;
         }
         // cout<<var[Form("linear_RE_%d", (int)(100*0.2))][i]<<endl;
         // cout<<"==========================================="<<endl;
 
         for ( auto thr : config->constant_threshold ) {
-            var[Form("linear_RE__%dmV", (int)(fabs(thr)))][i] = (thr-Re_b)/Re_slope;
+            var[Form("linear_RE__%dmV", (int)(fabs(thr)))][i] = (thr-Re_b)/Re_slope + myTimeOffset;
         }
         // cout<<"==========================================="<<endl;
 
