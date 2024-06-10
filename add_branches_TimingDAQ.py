@@ -10,9 +10,9 @@ hitTreeInputDir ="/home/daq/SurvivalBeam2021/LecroyScope/RecoData/HitCounterRECO
 infoInputDir = "/home/daq/SurvivalBeam2021/ConfigInfo/Runs/"
 
 
-# condorMode=False
-# if os.path.exists("_condor_stdout"):
-#     print("Detected condor")
+condorMode=False
+#if os.path.exists("_condor_stdout"):
+#    print("Detected condor")
 condorMode=True
 hitTreeInputDir=""
 infoInputDir=""
