@@ -1,4 +1,4 @@
-# Timing DAQ repository
+# Timing DAQ repository (USM version)
 
 - [Quick start](#quick-start)
   * [Installation](#installation)
