@@ -1,4 +1,5 @@
-# Timing DAQ repository
+# Timing DAQ repository (USM version)
+[Original Repository](https://github.com/CMS-MTD/TimingDAQ)
 
 - [Quick start](#quick-start)
   * [Installation](#installation)
@@ -28,9 +29,10 @@ git clone https://github.com/CaltechPrecisionTiming/TimingDAQ
 make -j8
 ```
 
-If willing to run on CMSLPC cluster, all the requirements to run are satisfied running
+If willing to run on CMSLPC cluster, all the requirements to run are satisfied running:
 ```
-source setup_el9.sh
+source /cvmfs/sft.cern.ch/lcg/views/LCG_89/x86_64-slc6-gcc62-opt/setup.sh
+source  /cvmfs/sft.cern.ch/lcg/releases/ROOT/6.10.02-19565/x86_64-slc6-gcc62-opt/bin/thisroot.sh
 ```
 
 If willing to run on LXPLUS cluster, all the requirements to run are satisfied running:

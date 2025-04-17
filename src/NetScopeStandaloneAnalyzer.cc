@@ -1,5 +1,5 @@
 #include "NetScopeStandaloneAnalyzer.hh"
-
+#include <unistd.h> 
 using namespace std;
 
 inline bool exists_test2 (const std::string& name) {

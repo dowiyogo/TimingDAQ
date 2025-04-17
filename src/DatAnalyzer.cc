@@ -126,7 +126,7 @@ void DatAnalyzer::Analyze(){
       }
     }
 
-    //std::cout << "amp: " << amp << std::endl;
+    std::cout << "amp: " << amp << "idx_min:" << idx_min << std::endl;
     if(config->channels[i].algorithm.Contains("HNR")) {delete f;}
 
     //************************************************************************************
@@ -159,7 +159,7 @@ void DatAnalyzer::Analyze(){
     vector<pair<int, int>> poly_bounds;
     float Re_b, Re_slope;
     bool fittable = true;
-    fittable *= idx_min < (int)(NUM_SAMPLES*0.8);
+    fittable *= idx_min < (int)(NUM_SAMPLES*0.9);//*0.8);
     fittable *= fabs(amp) > 8 * baseline_RMS;
     fittable *= fabs(channel[i][idx_min+1]) > 4*baseline_RMS;
     fittable *= fabs(channel[i][idx_min-1]) > 4*baseline_RMS;
@@ -263,16 +263,11 @@ void DatAnalyzer::Analyze(){
       /*******************************
       // -------------- Do  linear fit
       ********************************/
-      if(config->channels[i].algorithm.Contains("Re") ) {
-        // cout<<sizeof(time[GetTimeIndex(i)])/sizeof(time[GetTimeIndex(i)][0])<<endl;
-        // unsigned int i_min = GetMinIndex(channel[i]); // GetIdxFirstCross(config->channels[i].re_bounds[0]*amp, channel[i], idx_min, -1); config->channels[i].re_bounds[0]*amp
-        unsigned int i_min = GetIdxFirstCross(config->channels[i].re_bounds[0]*amp, channel[i], idx_min, -1); // GetIdxClosest(min(channel[i]), channel[i], idx_min, -1);
-        unsigned int i_max = GetIdxFirstCross(config->channels[i].re_bounds[1]*amp, channel[i], i_min  , +1);
+      if( config->channels[i].algorithm.Contains("Re") ) {
+        unsigned int i_min = GetIdxFirstCross(config->channels[i].re_bounds[0]*amp, channel[i], idx_min, -1);
+        unsigned int i_max = GetIdxFirstCross(config->channels[i].re_bounds[1]*amp, channel[i], i_min, +1);
         float t_min = time[GetTimeIndex(i)][i_min];
         float t_max = time[GetTimeIndex(i)][i_max];
-        // cout<<i_min<<"  -----------  "<<i_max<<endl;
-        // cout<<t_min<<"  -----------  "<<t_max<<endl;
-        // cout<<"==========================================="<<endl;
 
         TF1* flinear = new TF1("flinear"+name, "[0]*x+[1]", t_min, t_max);
         flinear->SetLineColor(2);
@@ -283,61 +278,14 @@ void DatAnalyzer::Analyze(){
         pulse->Fit("flinear"+name, opt);
         Re_slope = flinear->GetParameter(0);
         Re_b     = flinear->GetParameter(1);
-        // cout<<"==========================================="<<endl;
-        // cout<<config->channels[i].algorithm<<endl;
+
         for ( auto f : config->constant_fraction ) {
-          var[Form("linear_RE_%d", (int)(100*f))][i] = (f*amp-Re_b)/Re_slope + myTimeOffset;
+          var[Form("linear_RE_%d", (int)(100*f))][i] = (f*amp-Re_b)/Re_slope;
         }
-        // cout<<var[Form("linear_RE_%d", (int)(100*0.2))][i]<<endl;
-        // cout<<"==========================================="<<endl;
 
         for ( auto thr : config->constant_threshold ) {
-            var[Form("linear_RE__%dmV", (int)(fabs(thr)))][i] = (thr-Re_b)/Re_slope + myTimeOffset;
+          var[Form("linear_RE__%dmV", (int)(fabs(thr)))][i] = (thr-Re_b)/Re_slope;
         }
-        // cout<<"==========================================="<<endl;
-
-        // if (i_evt > 0 && i_evt < 10) { // Plotting the clock and the fitted line.
-        // TCanvas * c = new TCanvas(Form("fit_results%d", i_evt), Form("fit_results%d", i_evt));
-        // pulse->Draw(Form("channels[%d]:time", i), Form("event==%d", i_evt));
-        // const int bins = NUM_SAMPLES; // round(sizeof(channel[i])/sizeof(int));
-        // if (var[Form("linear_RE_%d", (int)(100*0.2))][i] == 0) {
-        //     cout<<"Clock time stamp is 0: "<<0.2*amp<<"     "<<Re_b<<endl;
-        // }
-        // cout<<t_min<<"     "<<t_max<<"     "<<bins<<endl;
-
-        // float line[bins] = {};
-        // float t = t_min;
-        // float time_array[bins] = {};
-        // float clock_waveform[bins] = {};
-        // for (int b = 0; b < bins; b++) {
-        //     t += b*(t_max - t_min)/bins;
-        //     time_array[b] = t;
-        //     line[b] = Re_slope * t + Re_b;
-        //     // clock_waveform[b] = channel[i][b]
-        //     // cout<<t<<"         "<<line[b]<<endl;
-        // }
-        // [GetTimeIndex(i)]
-        // for (int k =0; k<bins; k++) {
-        //     cout<<k<<")     "<<typeid(time[k]).name()<<"     "<<typeid(channel[k]).name()<<endl;
-        // }
-        // TGraph * clock_plot = new TGraph(bins, time[GetTimeIndex(i)], channel[i]);
-        // TGraph * line_plot  = new TGraph(bins, time_array, line);
-        // cout<<"The size of the time:    "<<sizeof(time[GetTimeIndex(i)])/sizeof(time[GetTimeIndex(i)][0])<<endl;
-        // cout<<"The size of the channel: "<<sizeof(channel[i])/sizeof(channel[i][0])<<endl;
-        // line_plot->SetLineColor(2);
-        // line_plot->SetLineWidth(2);
-        // clock_plot->SetLineColor(4);
-        // clock_plot->SetLineWidth(2);
-
-        // clock_plot->Draw("");
-        // line_plot->Draw("same");
-
-        // c->SaveAs(Form("/home/daq/ETROC2_Test_Stand/module_test_sw/analysis/FIT_PLOTS_TEST/fit_results%d.png", i_evt));
-        // delete clock_plot;
-        // delete line_plot;
-        // delete c;
-
-        // }
 
         delete flinear;
       }
@@ -345,7 +293,7 @@ void DatAnalyzer::Analyze(){
       // -------------- Local polinomial fit
       **************************************/
       if ( config->constant_fraction.size() ) {
-        float start_level =  - 3 * baseline_RMS;
+        float start_level =  - 2 * baseline_RMS;//- 3 * baseline_RMS;
         unsigned int j_start =  GetIdxFirstCross( start_level, channel[i], idx_min, -1);
 
         for(auto f : config->constant_fraction) {
@@ -384,7 +332,7 @@ void DatAnalyzer::Analyze(){
               out = t1 + (t2 - t1) * (amp*f - v1)/(v2 - v1);
             }
 
-            // cout << Form("%g: %g %g %g %g %g %g", f, t1, v1, t2, v2, amp*f, out) << endl;
+            cout << Form("%g: %g %g %g %g %g %g", f, t1, v1, t2, v2, amp*f, out) << std::flush;//<< endl;
             var[Form("IL_%d", (int)(100*f))][i] = out + myTimeOffset;
           }
 
@@ -415,7 +363,7 @@ void DatAnalyzer::Analyze(){
             double q = (sy*sx2 - sx*sxy)/(3*sx2 - sx*sx);
             double m = (3*sxy - sx*sy)/(3*sx2 - sx*sx);
 
-            // cout << Form("%g: %g %g %g %g %g %g", f, t1, v1, t2, v2, amp*f, out) << endl;
+            //cout << Form("%g: %g %g %g %g %g %g", f, t1, v1, t2, v2, amp*f, out) << endl;
             var[Form("FL_%d", (int)(100*f))][i] = m*amp*f + q + myTimeOffset;
           }
 
@@ -459,7 +407,7 @@ void DatAnalyzer::Analyze(){
         }
       }
       if ( config->constant_threshold.size() ) {
-        float start_level =  - 3 * baseline_RMS;
+        float start_level =  - 2 * baseline_RMS; //- 3 * baseline_RMS;
         unsigned int j_start =  GetIdxFirstCross( start_level, channel[i], idx_min, -1);
 
         for(auto thr : config->constant_threshold) {
@@ -531,7 +479,7 @@ void DatAnalyzer::Analyze(){
             double q = (sy*sx2 - sx*sxy)/(3*sx2 - sx*sx);
             double m = (3*sxy - sx*sy)/(3*sx2 - sx*sx);
 
-            // cout << Form("%g: %g %g %g %g %g %g", f, t1, v1, t2, v2, amp*f, out) << endl;
+            //cout << Form("%g: %g %g %g %g %g %g", f, t1, v1, t2, v2, amp*f, out) << endl;
             var[Form("FL_%dmV", (int)(fabs(thr)))][i] = m*thr + q + myTimeOffset;
           }
 
@@ -598,12 +546,12 @@ void DatAnalyzer::Analyze(){
         if(config->constant_fraction.size() > 0 && startTime > var[Form("LP2_%d",(int)(100*config->constant_fraction.at(0)))][i] ) startTime = var[Form("LP2_%d",(int)(100*config->constant_fraction.at(0)))][i]-2.*realrisetime;
         double tmpT = startTime;
         var["InterpolatedAmp"][i] = 666;
-        // std::cout << "====================" << std::endl;
-        // cout<<"t_peak "<<var["t_peak"][i]<<" "<<realrisetime<<std::endl;
-        // cout << "time : " << tmpT << " --> " << voltage->f(tmpT)<<std::endl ;
+        std::cout << "====================" << std::endl;
+        cout<<"t_peak "<<var["t_peak"][i]<<" "<<realrisetime<<std::endl;
+        cout << "time : " << tmpT << " --> " << voltage->f(tmpT)<<std::endl ;
         while ( tmpT < var["t_peak"][i] + 5.0e-9 )
         {
-          // cout << "time : " << tmpT << " --> " << voltage->f(tmpT) <<std::endl;
+           cout << "time : " << tmpT << " --> " << voltage->f(tmpT) <<std::endl;
           if (voltage->f(tmpT) < var["InterpolatedAmp"][i])//find minimum (negative going pulses)
           {
             var["InterpolatedAmp"][i] = voltage->f(tmpT);
@@ -612,7 +560,7 @@ void DatAnalyzer::Analyze(){
           //cout << "\n";
           tmpT += 0.001e-9;
         }
-        // cout<<"Finished first while loop, amp is "<<fabs(var["InterpolatedAmp"][i])<<std::endl;
+        cout<<"Finished first while loop, amp is "<<fabs(var["InterpolatedAmp"][i])<<std::endl;
         var["InterpolatedAmp"][i] = fabs(var["InterpolatedAmp"][i]);
 
         //Constant threshold timestamping
@@ -622,7 +570,7 @@ void DatAnalyzer::Analyze(){
           var[Form("t1_%d", (int)(fabs(thr)))][i] = -666;
           if ( var["amp"][i] > fabs(thr) )
           {
-            //std::cout << "=====Constant Threshold======" << var["amp"][i] << " " << thr << "========================" << std::endl;
+            std::cout << "=====Constant Threshold======" << var["amp"][i] << " " << thr << "========================" << std::endl;
             int retCode = TimeOverThreshold( voltage, thr, startTime, time[GetTimeIndex(i)][NUM_SAMPLES-1], i, GetTimeIndex(i), var[Form("t0_%d", (int)(fabs(thr)))][i],var[Form("t1_%d", (int)(fabs(thr)))][i], myTimeOffset);
             if( retCode == 0 ) var[Form("tot_%d", (int)(fabs(thr)))][i] = var[Form("t1_%d", (int)(fabs(thr)))][i]-var[Form("t0_%d", (int)(fabs(thr)))][i];
           }
@@ -637,7 +585,7 @@ void DatAnalyzer::Analyze(){
           {
             //pulses are negative, so need to multiply the amplitude by -1.0
             double CFDThreshold = -1.0 * thr * var["InterpolatedAmp"][i];
-            //std::cout << "===CFD====" << var["amp"][i] << " " << CFDThreshold << "========================" << std::endl;
+            std::cout << "===CFD====" << var["amp"][i] << " " << CFDThreshold << "========================" << std::endl;
             int retCode = TimeOverThreshold( voltage, CFDThreshold, startTime, time[GetTimeIndex(i)][NUM_SAMPLES-1] , i, GetTimeIndex(i), var[Form("t0CFD_%d", (int)(100*thr))][i],var[Form("t1CFD_%d", (int)(100*thr))][i], myTimeOffset);
             // int retCode = TimeOverThreshold( voltage, CFDThreshold, startTime, 200 , i, GetTimeIndex(i), var[Form("t0CFD_%d", (int)(100*thr))][i],var[Form("t1CFD_%d", (int)(100*thr))][i]);
             if( retCode == 0 ) var[Form("totCFD_%d", (int)(100*thr))][i] = var[Form("t1CFD_%d", (int)(100*thr))][i]-var[Form("t0CFD_%d", (int)(100*thr))][i];
@@ -1340,14 +1288,15 @@ unsigned int DatAnalyzer::GetIdxClosest(float value, float* v, unsigned int i_st
 
 unsigned int DatAnalyzer::GetIdxFirstCross(float value, float* v, unsigned int i_st, int direction) {
   unsigned int idx_end = direction>0 ? NUM_SAMPLES-1 : 0;
-  bool rising = value > v[i_st]? true : false; // Check if the given max value is greater than the given waveform amplitude at a given start time (i_st).
 
-  // if it is: the value of the waveform needs to rise and otherwise it doesn't need so the function will return the i_st.
+  bool rising = value > v[i_st]? true : false;
+
   unsigned int i = i_st;
-  while( (i != idx_end)) { // loop over the time bins
-    if(rising && v[i] > value) break; // check if the rising variable is true and if the waveform value is going higher than the given amplitude value. And stops the loop.
-    else if( !rising && v[i] < value) break; // check if the rising variable is false and if the waveform value is still lower than the given amplitude value. And stops the loop.
-    i += direction; // Otherwise it moves to the next time bin.
+
+  while( i != idx_end ) {
+    if(rising && v[i] > value) break;
+    else if( !rising && v[i] < value) break;
+    i += direction;
   }
 
   return i;
@@ -1488,21 +1437,6 @@ int DatAnalyzer::TimeOverThreshold(Interpolator *voltage, double tThresh, double
 
 };
 
-int DatAnalyzer::GetMinIndex(float* array) {
-    float min = 10000;
-    int index = 10000;
-    for (int i = 0; i < (sizeof(array) / sizeof(array[0])); i++) {
-        if (array[i] < min) {
-            min = array[i];
-            cout<<i<<", ";
-            index = i;
-        }
-    }
-    cout<<endl;
-    cout<<min<<endl;
-    return index;
-};
-
 float DatAnalyzer::FrequencySpectrum(double freq, double tMin, double tMax, int ich, int t_index){
 
 	const int range = 0; // extension of samples to be used beyond [tMin, tMax]
@@ -1526,21 +1460,21 @@ float DatAnalyzer::FrequencySpectrum(double freq, double tMin, double tMax, int 
 
 float DatAnalyzer::FrequencySpectrum(double freq, double tMin, double tMax, unsigned int n_samples, float* my_channel, float* my_time)
 {
-  const int range = 0;
-	double deltaT = (my_time[n_samples - 1] - my_time[0])/(double)(n_samples - 1);
-	double fCut = 0.5/deltaT;
-	int n_min = floor(tMin/deltaT) - range;
-	int n_max = ceil(tMax/deltaT) + range;
-	n_min = std::max(n_min,0);
-	n_max = std::min(n_max, (int)(n_samples - 1));
+  const int range = 0; // extension of samples to be used beyond [tMin, tMax]
+	double deltaT = (my_time[n_samples - 1] - my_time[0])/(double)(n_samples - 1); // sampling time interval
+	double fCut = 0.5/deltaT; // cut frequency = 0.5 * sampling frequency from WST
+	int n_min = floor(tMin/deltaT) - range; // first sample to use
+	int n_max = ceil(tMax/deltaT) + range; // last sample to use
+	n_min = std::max(n_min,0); // check low limit
+	n_max = std::min(n_max, (int)(n_samples - 1)); // check high limit
 	int n_0 = (n_min + n_max)/2;
 
-	TComplex s(0.,0.);
-	TComplex I(0.,1.);
+	TComplex s(0.,0.); // Fourier transform at freq
+	TComplex I(0.,1.); // i
 
 	for(int n = n_min; n <= n_max; n++)
 	{
-    s += deltaT*(double)my_channel[n]*TComplex::Exp(-I*(2.*TMath::Pi()*freq*(n-n_0)*deltaT));
+    s += deltaT*(double)my_channel[n]*TComplex::Exp(-I*(2.*TMath::Pi()*freq*(n-n_0)*deltaT));//maybe don't need n_0 here, I think it will just add a phase to the fourier transform
 	}
   return s.Rho();
 };
